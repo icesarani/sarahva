@@ -6,16 +6,19 @@ import wikipedia
 import pywhatkit as pw
 import os
 import time
+from translate import Translator
+from io import open
 
 listener = sr.Recognizer()
 engine = pyttsx3.init()
+translator= Translator(to_lang="es")
 
 voices = engine.getProperty('voices')
 engine.setProperty('voice', voices[0].id)
 
 namea = 'sarah'
 namey = "Señor Stark"
-cels =["father:+541149770791","adoptado:+5491141673005","monkey:+5491132512401"]
+cels =["father:+541149770791","gonza:+5491141673005","monkey:+5491132512401"]
 exe = ['discord.exe','notepad.exe','chrome.exe','pycharm.exe']
 
 def talk(text):
@@ -69,12 +72,18 @@ def subrun():
         elif 'open' in rec:
             abrir(rec)
 
+        elif 'add new contact' in rec:
+            addcontact()
+
         elif 'como se llama dios' in rec:
             talk("My lord and master is called Ignacio Cesarani")
             print("+My lord and master is called Ignacio Cesarani")
 
         elif 'suicide' in rec:
             suicidio()
+
+        elif 'translate' in rec:
+            traductor(rec)
 
         elif 'what is your name' in rec:
             wiyn()
@@ -83,7 +92,10 @@ def subrun():
             shutdown()
 
         elif 'send' in rec:
-            send(rec) 
+            send(rec)
+
+        elif 'what is love' in rec:
+            waislove()
 
         elif 'exit' in rec:
             exit()
@@ -91,7 +103,6 @@ def subrun():
 
         elif 'do you love me' in rec:
             amor()
-
 
         else:
             print("+Try again")
@@ -140,8 +151,6 @@ def abrir(rec):
 
     os.system("start "+app)
 
-
-
 def fecha():
     '''It tells you what date it is // Use: one enters date and Sarah tells you what day it is today'''
 
@@ -170,25 +179,34 @@ def send(rec):
     The name will define the recipient and then you will be asked to enter
     what text do you want to send'''
 
+    rec = rec.replace("send ", "")
+
     print("+A message will be sent by whatsapp")
     talk("A message will be sent by whatsapp")
 
-    cel = ''
+    cel = ""
 
-    for k in range(len(cels)):
-        aux = cels[k].split(':')
-        if aux[0] in rec:
-            cel = aux[1]
+    contacts = open("celphones.txt", "r")
+    contactos = contacts.read()
+    contacts.close()
 
-    if cel != '':
+    lista = contactos.split("|")
+
+    for i in range(len(lista) - 1):
+        if rec in lista[i]:
+            aux = lista[i].split("+")
+            cel = "+" + aux[1]
+
+    try:
         print(f"+The message will be sent to {cel} What message do you want to send?")
         talk(f"The message will be sent to {cel} What message do you want to send")
         rec = listen()
         print("Your message was: " + rec)
         pw.sendwhatmsg(cel, rec, int(datetime.now().strftime("%H")), int(datetime.now().strftime("%M")) + 1)
-    else:
+    except:
         print("+No recipient was found")
         talk("No recipient was foundo")
+        pass
 
 def shutdown():
     '''Turn off your PC // Usage: when instructing Sarah to "shutdown" she will ask if she wants to shut down her PC, if she says "yes" to shut down'''
@@ -207,11 +225,28 @@ def shutdown():
         print("+PC shutdown has been canceled")
         talk("PC shutdown has been canceled")
 
+def traductor(rec):
+    rec = rec.replace('translate', '')
+    print(f"+You will translate \"{rec}\"")
+    talk(f"You will translate \"{rec}\"")
+    traduccion = translator.translate(rec)
+    engine.setProperty('voice', voices[1].id)
+    print("+"+traduccion)
+    talk(traduccion)
+    engine.setProperty('voice', voices[0].id)
+
 def wiyn():
     '''Print her name // Use: ask "what is your name" and the bot will print and use talk to say it'''
 
     print("+My name is " + namea)
     talk("My name is " + namea)
+
+def waislove():
+    print("+Well... I really dont know but I found something that could help you...")
+    talk("Well... I really dont know but I found something that could help you...")
+    time.sleep(2)
+    pywhatkit.playonyt("What is love Haddaway")
+    time.sleep(15)
 
 def play(rec):
     '''
@@ -241,6 +276,51 @@ def suicidio():
     time.sleep(1)
     print("+Haha just kidding")
     talk("Haha just kidding")
+
+def addcontact():
+    '''Add a new contact with a name and the cellphone for whatsapp messages // I works thanks the os library of write and open'''
+
+    contactos = open("celphones.txt", "r")
+    contactoss = contactos.readline()  # consigo todos los contactos para ver si esta repetido el numero
+    contactos.close()
+
+    print("+First tell me the name of the new contact, think of one with whom he will be recognized: ")
+    talk("First tell me the name of the new contact, think of one with whom he will be recognized")
+    nombre = input("")
+    repetidonom = verificacioncel(contactoss, nombre)
+    while (repetidonom == True) or (nombre == ""):
+        print("+The name of the contact is al ready among them or Its null. Please enter a new name: ")
+        talk("The name of the contact is al ready among them or Its null. Please enter a new name")
+        nombre = input("")
+        repetidonom = verificacioncel(contactoss, nombre)
+    nombre = nombre.lower()
+
+    print("+Good, now I need the cellphone please put it as it appears on the screen (1149278722): ")
+    talk("Good, now I need the cellphone please put it as it appears on the screen")
+    celphone = input("")
+    repetidocel = verificacioncel(contactoss, celphone)
+    while (repetidocel == True) or (celphone == ""):
+        print("+Sorry but the number of cellphone is already among the contacts or Its null. Please enter another one (1149278722): ")
+        talk("Sorry but the number of cellphone is already among the contacts or Its null. Please enter another one")
+        celphone = input("")
+        repetidocel = verificacioncel(contactoss, celphone)
+
+    contacts = open("celphones.txt", "a")
+    contacts.write(nombre + "+54" + celphone + "|")  # cuando le numero no este repetido agrego el contacto
+    contacts.close()
+
+    print("+The cellphone has been added!")
+    talk("The cellphone has been added")
+    time.sleep(3)
+
+def verificacioncel(contactoss, variables):
+    lista = contactoss.split("|")
+
+    repetido = False
+    for i in range(len(lista)-1):
+        if variables in lista[i]:
+            repetido = True
+    return repetido
 
 def triste():
     '''Momento sad para cuando estas triste'''
